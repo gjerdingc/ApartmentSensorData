@@ -2,16 +2,31 @@
 
 {% block content %}
     <h1 style="text-align:center; margin-bottom:20px; margin:10px;">{% block title %} Sensordata for leiligheten {% endblock %}</h1>
-    <div style="clear: both"><h2 style="float: left">Temperatur:&nbsp;&nbsp;</h2><h2 style="color:green;">  {{ temperature }} C</h2></div>
-    <div style="clear: both"><h2 style="float: left">Fuktighet:&nbsp;&nbsp;</h2><h2 style="color:green">  {{ humidity }} %</h2></div>
+    <div style="clear: both"><h2 style="float: left">Temperatur:&nbsp;&nbsp;</h2><h2 style="color:green;">  {{ sensordata.temperature_now }} C</h2></div>
+    <div style="clear: both"><h2 style="float: left">Fuktighet:&nbsp;&nbsp;</h2><h2 style="color:green">  {{ sensordata.humidity_now }} %</h2></div>
 
 
-    <div style="clear: both"><h3 style="float: left">PM1.0 ug/m3 (ultrafine particles):&nbsp;&nbsp;</h2><h2 style="color:green">  {{ pmlist_now[0] }}</h2></div>
+    <div style="clear: both">
+        <h3 style="float: left">PM1.0 ug/m3 (ultrafine particles):&nbsp;&nbsp;</h3>
+        <h2 {% if sensordata.pm1_now == "Sensor offline" %} style="color:red" {% else %} style="color:green" {% endif %} >
+                {{ sensordata.pm1_now }}
+        </h2>
+    </div>
 
-    <div style="clear: both"><h3 style="float: left">PM2.5 ug/m3 (combustion particles, organic compounds, metals):&nbsp;&nbsp;</h2><h2 style="color:green">  {{ pmlist_now[1] }}</h2></div>
+    <div style="clear: both">
+        <h3 style="float: left">PM2.5 ug/m3 (combustion particles, organic compounds, metals):&nbsp;&nbsp;</h3>
+        <h2 {% if sensordata.pm2_5_now == "Sensor offline" %} style="color:red" {% else %} style="color:green" {% endif %} >
+                {{ sensordata.pm2_5_now }}
+        </h2>
+    </div>
 
-    <div style="clear: both"><h3 style="float: left">PM10 ug/m3  (dust, pollen, mould spores):&nbsp;&nbsp;</h2><h2 style="color:green">  {{ pmlist_now[2] }}</h2></div>
-    
+    <div style="clear: both">
+        <h3 style="float: left">PM10 ug/m3  (dust, pollen, mould spores)::&nbsp;&nbsp;</h3>
+        <h2 {% if sensordata.pm10_now == "Sensor offline" %} style="color:red" {% else %} style="color:green" {% endif %} >
+                {{ sensordata.pm10_now }}
+        </h2>
+    </div>
+
     <div class="chart-container">
         <canvas id="tempChart"></canvas>
     </div>
@@ -31,7 +46,7 @@
         var myChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels : [{% for item in templabels %} 
+                labels : [{% for item in sensordata.templabels %} 
                         "{{item}}",
                         {% endfor %}],
                 datasets : [{
@@ -53,7 +68,7 @@
                     pointHoverBorderWidth: 2,
                     pointRadius: 1,
                     pointHitRadius: 5,
-                    data : [{% for item in tempvalues %}
+                    data : [{% for item in sensordata.tempvalues %}
                                 {{item}},
                             {% endfor %}],
                     spanGaps: false
@@ -83,7 +98,7 @@
         var myChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels : [{% for item in humlabels %}
+                labels : [{% for item in sensordata.humlabels %}
                         "{{item}}",
                         {% endfor %}],
                 datasets : [{
@@ -105,7 +120,7 @@
                     pointHoverBorderWidth: 2,
                     pointRadius: 1,
                     pointHitRadius: 10,
-                    data : [{% for item in humvalues %}
+                    data : [{% for item in sensordata.humvalues %}
                                 {{item}},
                             {% endfor %}],
                     spanGaps: false
@@ -131,7 +146,7 @@
     var myChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels : [{% for item in datadict['pmlabels'] %}
+            labels : [{% for item in sensordata.pmlabels %}
                     "{{item}}",
                     {% endfor %}],
             datasets : [{
@@ -147,7 +162,7 @@
                 pointRadius: 1,
                 pointHitRadius: 10,
                 fill: false,
-                data : [{% for item in datadict['pm1'] %}
+                data : [{% for item in sensordata.pm1 %}
                             {{item}},
                         {% endfor %}],
                 spanGaps: false
@@ -165,7 +180,7 @@
                 pointHoverBorderWidth: 2,
                 pointRadius: 1,
                 pointHitRadius: 10,
-                data : [{% for item in datadict['pm2_5'] %}
+                data : [{% for item in sensordata.pm2_5 %}
                             {{item}},
                         {% endfor %}],
                 spanGaps: false
@@ -183,7 +198,7 @@
                 pointHoverBorderWidth: 2,
                 pointRadius: 1,
                 pointHitRadius: 10,
-                data : [{% for item in datadict['pm10'] %}
+                data : [{% for item in sensordata.pm10 %}
                             {{item}},
                         {% endfor %}],
                 spanGaps: false

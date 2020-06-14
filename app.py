@@ -10,6 +10,25 @@ from pms5003 import PMS5003
 
 app= Flask(__name__)
 
+class Sensordata:
+    def __init__(self):
+
+        self.temperature_now = ''
+        self.humidity_now = ''
+        self.pm1_now = ''
+        self.pm2_5_now = ''
+        self.pm10_now = ''
+
+        self.tempvalues = []
+        self.templabels = []
+        self.humvalues = []
+        self.humlabels = []
+        self.pm1 = []
+        self.pm2_5 = []
+        self.pm10 = []
+        self.pmlabels = []
+
+sensordata = Sensordata()
 
 tempdb = TinyDB('/home/pi/bin/dht22db.json')
 particledb = TinyDB('/home/pi/bin/database/pms5003db.json')
@@ -25,58 +44,43 @@ pms5003 = PMS5003(
 
 @app.route('/')
 def index():
-
-    tempvalues = []
-    templabels = []
-    humvalues = []
-    humlabels = []
-
     try:
-        humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
+        sensordata.humidity_now, sensordata.temperature_now = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
+        sensordata.humidity_now = round(sensordata.humidity_now, 1)
+        sensordata.temperature_now = round(sensordata.temperature_now, 1)
     except:
         humidity = 'Sensor offline'
         temperature = 'Sensor offline'
 
-        
-
-    datadict = {'pm1':[], 'pm2_5':[], 'pm10':[], 'pmlabels':[]}
-
     try:
         data = pms5003.read()
-        pm1 = data.pm_ug_per_m3(1)
-        pm2_5 = data.pm_ug_per_m3(2.5)
-        pm10 = data.pm_ug_per_m3(10)
+        sensordata.pm1_now = data.pm_ug_per_m3(1)
+        sensordata.pm2_5_now = data.pm_ug_per_m3(2.5)
+        sensordata.pm10_now = data.pm_ug_per_m3(10)
 
-        pmlist_now = [pm1, pm2_5, pm10]
     except:
-        pmlist_now = ['Sensor offline', 'Sensor offline', 'Sensor offline']
-
+        sensordata.pm1_now = "Sensor offline"
+        sensordata.pm2_5_now = "Sensor offline"
+        sensordata.pm10_now = "Sensor offline"
 
     for i in tempdb.all():
         datetime_object = parser.parse(i['date'])
 
         if datetime_object > (datetime.now() - timedelta(hours=48)):
 
-            tempvalues.append(i['temperature'])
-            templabels.append(datetime_object.strftime("%H:%M"))
-            humvalues.append(i['humidity'])
-            humlabels.append(datetime_object.strftime("%H:%M"))
+            sensordata.tempvalues.append(i['temperature'])
+            sensordata.templabels.append(datetime_object.strftime("%H:%M"))
+            sensordata.humvalues.append(i['humidity'])
+            sensordata.humlabels.append(datetime_object.strftime("%H:%M"))
 
     for i in particledb.all():
         datetime_object = parser.parse(i['date'])
 
         if datetime_object > (datetime.now() - timedelta(hours=48)):
-            datadict['pm1'].append(i['pm1'])
-            datadict['pm2_5'].append(i['pm2_5'])
-            datadict['pm10'].append(i['pm10'])
-            datadict['pmlabels'].append(datetime_object.strftime("%H:%M"))
+            sensordata.pm1.append(i['pm1'])
+            sensordata.pm2_5.append(i['pm2_5'])
+            sensordata.pm10.append(i['pm10'])
+            sensordata.pmlabels.append(datetime_object.strftime("%H:%M"))
 
 
-    return render_template('index.html', temperature=round(temperature,1), 
-                                        humidity=round(humidity,1), 
-                                        tempvalues=tempvalues, 
-                                        templabels=templabels, 
-                                        humvalues=humvalues, 
-                                        humlabels=humlabels,
-                                        pmlist_now = pmlist_now,
-                                        datadict = datadict)
+    return render_template('index.html', sensordata = sensordata)
