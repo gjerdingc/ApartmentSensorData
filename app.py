@@ -25,20 +25,31 @@ pms5003 = PMS5003(
 
 @app.route('/')
 def index():
-    humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
+
     tempvalues = []
     templabels = []
     humvalues = []
     humlabels = []
 
+    try:
+        humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
+    except:
+        humidity = 'Sensor offline'
+        temperature = 'Sensor offline'
+
+        
+
     datadict = {'pm1':[], 'pm2_5':[], 'pm10':[], 'pmlabels':[]}
 
-    data = pms5003.read()
-    pm1 = data.pm_ug_per_m3(1)
-    pm2_5 = data.pm_ug_per_m3(2.5)
-    pm10 = data.pm_ug_per_m3(10)
+    try:
+        data = pms5003.read()
+        pm1 = data.pm_ug_per_m3(1)
+        pm2_5 = data.pm_ug_per_m3(2.5)
+        pm10 = data.pm_ug_per_m3(10)
 
-    pmlist_now = [pm1, pm2_5, pm10]
+        pmlist_now = [pm1, pm2_5, pm10]
+    except:
+        pmlist_now = ['Sensor offline', 'Sensor offline', 'Sensor offline']
 
 
     for i in tempdb.all():

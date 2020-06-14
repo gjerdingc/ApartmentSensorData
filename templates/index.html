@@ -7,7 +7,9 @@
 
 
     <div style="clear: both"><h3 style="float: left">PM1.0 ug/m3 (ultrafine particles):&nbsp;&nbsp;</h2><h2 style="color:green">  {{ pmlist_now[0] }}</h2></div>
+
     <div style="clear: both"><h3 style="float: left">PM2.5 ug/m3 (combustion particles, organic compounds, metals):&nbsp;&nbsp;</h2><h2 style="color:green">  {{ pmlist_now[1] }}</h2></div>
+
     <div style="clear: both"><h3 style="float: left">PM10 ug/m3  (dust, pollen, mould spores):&nbsp;&nbsp;</h2><h2 style="color:green">  {{ pmlist_now[2] }}</h2></div>
     
     <div class="chart-container">
@@ -29,7 +31,7 @@
         var myChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels : [{% for item in templabels %}
+                labels : [{% for item in templabels %} 
                         "{{item}}",
                         {% endfor %}],
                 datasets : [{
