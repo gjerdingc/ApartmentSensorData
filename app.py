@@ -28,11 +28,10 @@ class Sensordata:
         self.pm10 = []
         self.pmlabels = []
 
-sensordata = Sensordata()
-
 tempdb = TinyDB('/home/pi/bin/dht22db.json')
 particledb = TinyDB('/home/pi/bin/database/pms5003db.json')
 
+query = Query()
 
 DHT_SENSOR = Adafruit_DHT.DHT22
 DHT_PIN = 4
@@ -44,14 +43,19 @@ pms5003 = PMS5003(
 
 @app.route('/')
 def index():
+
+    sensordata = Sensordata()
+
+#Try to read from DHT22 sensor
     try:
         sensordata.humidity_now, sensordata.temperature_now = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
         sensordata.humidity_now = round(sensordata.humidity_now, 1)
         sensordata.temperature_now = round(sensordata.temperature_now, 1)
     except:
-        humidity = 'Sensor offline'
-        temperature = 'Sensor offline'
+        sensordata.humidity = 'Sensor offline'
+        sensordata.temperature = 'Sensor offline'
 
+#Try to read from PMS5003 sensor
     try:
         data = pms5003.read()
         sensordata.pm1_now = data.pm_ug_per_m3(1)
@@ -63,6 +67,7 @@ def index():
         sensordata.pm2_5_now = "Sensor offline"
         sensordata.pm10_now = "Sensor offline"
 
+#Filter temperature and humidity data from last 48 hours
     for i in tempdb.all():
         datetime_object = parser.parse(i['date'])
 
@@ -73,6 +78,7 @@ def index():
             sensordata.humvalues.append(i['humidity'])
             sensordata.humlabels.append(datetime_object.strftime("%H:%M"))
 
+#Filter particle data from last 48 hours
     for i in particledb.all():
         datetime_object = parser.parse(i['date'])
 
