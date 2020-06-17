@@ -52,35 +52,43 @@ def index():
     startTime = datetime.timestamp(datetime.now() - timedelta(hours=48))
 
     #Query temperaturedata and add it to sensordata object
+    #data for graph
     data = dbRangeQuery('Temperature', startTime, endTime, 1000)
     sensordata.tempvalues = data['values']
     sensordata.templabels = data['labels']
+    #Current value
+    sensordata.temperature_now = dbInstantQuery('Temperature')
 
 
     #Query humiditydata and add it to sensordata object
+    #data for graph
     data = dbRangeQuery('Humidity', startTime, endTime, 1000)
     sensordata.humvalues = data['values']
     sensordata.humlabels = data['labels']
+    #Current value
+    sensordata.humidity_now = dbInstantQuery('Humidity')
 
 
     #Query particledata and add it to sensordata object
-    #PM1
+    #PM1 data for graph
     data = dbRangeQuery('PM1', startTime, endTime, 1000)
     sensordata.pm1 = data['values']
     sensordata.pmlabels = data['labels']
+    #Current value
+    sensordata.pm1_now = dbInstantQuery('PM1')
 
-    #PM2.5
+    #PM2.5 data for graph
     data = dbRangeQuery('PM2_5', startTime, endTime, 1000)
     sensordata.pm2_5 = data['values']
+    #Current value
+    sensordata.pm2_5_now = dbInstantQuery('PM2_5')
 
-    #PM10
+    #PM10 data for graph
     data = dbRangeQuery('PM10', startTime, endTime, 1000)
     sensordata.pm10 = data['values']
-
-
-
-
-
+    #Current value
+    sensordata.pm10_now = dbInstantQuery('PM10')
+    
 
     #Return view with data
     return render_template('index.html', sensordata = sensordata)
@@ -102,3 +110,13 @@ def dbRangeQuery(query, startTime, endTime, step):
 
 
     return {'values': values, 'labels': labels}
+
+
+def dbInstantQuery(query):
+    queryString = f"{db_url}/query?query={query}"
+    r = requests.get(queryString)
+    data = r.json()
+
+    value = data['data']['result'][0]['value'][1]
+
+    return value
