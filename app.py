@@ -3,13 +3,16 @@ from flask import Response
 from flask import render_template
 import Adafruit_DHT
 from tinydb import TinyDB, Query
-from datetime import *
+from datetime import datetime
+from datetime import timedelta
 from dateutil import parser
 from pms5003 import PMS5003
+import requests
 
 
 app= Flask(__name__)
 
+#Class for passing data into view
 class Sensordata:
     def __init__(self):
 
@@ -28,10 +31,6 @@ class Sensordata:
         self.pm10 = []
         self.pmlabels = []
 
-tempdb = TinyDB('/home/pi/bin/dht22db.json')
-particledb = TinyDB('/home/pi/bin/database/pms5003db.json')
-
-query = Query()
 
 DHT_SENSOR = Adafruit_DHT.DHT22
 DHT_PIN = 4
@@ -41,52 +40,65 @@ pms5003 = PMS5003(
     baudrate=9600
 )
 
+#Prometheus timeseries database
+db_url = "http://localhost:9090/api/v1"
+
 @app.route('/')
 def index():
 
     sensordata = Sensordata()
 
-#Try to read from DHT22 sensor
-    try:
-        sensordata.humidity_now, sensordata.temperature_now = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
-        sensordata.humidity_now = round(sensordata.humidity_now, 1)
-        sensordata.temperature_now = round(sensordata.temperature_now, 1)
-    except:
-        sensordata.humidity = 'Sensor offline'
-        sensordata.temperature = 'Sensor offline'
+    endTime = datetime.timestamp(datetime.now())
+    startTime = datetime.timestamp(datetime.now() - timedelta(hours=48))
 
-#Try to read from PMS5003 sensor
-    try:
-        data = pms5003.read()
-        sensordata.pm1_now = data.pm_ug_per_m3(1)
-        sensordata.pm2_5_now = data.pm_ug_per_m3(2.5)
-        sensordata.pm10_now = data.pm_ug_per_m3(10)
-
-    except:
-        sensordata.pm1_now = "Sensor offline"
-        sensordata.pm2_5_now = "Sensor offline"
-        sensordata.pm10_now = "Sensor offline"
-
-#Filter temperature and humidity data from last 48 hours
-    for i in tempdb.all():
-        datetime_object = parser.parse(i['date'])
-
-        if datetime_object > (datetime.now() - timedelta(hours=48)):
-
-            sensordata.tempvalues.append(i['temperature'])
-            sensordata.templabels.append(datetime_object.strftime("%H:%M"))
-            sensordata.humvalues.append(i['humidity'])
-            sensordata.humlabels.append(datetime_object.strftime("%H:%M"))
-
-#Filter particle data from last 48 hours
-    for i in particledb.all():
-        datetime_object = parser.parse(i['date'])
-
-        if datetime_object > (datetime.now() - timedelta(hours=48)):
-            sensordata.pm1.append(i['pm1'])
-            sensordata.pm2_5.append(i['pm2_5'])
-            sensordata.pm10.append(i['pm10'])
-            sensordata.pmlabels.append(datetime_object.strftime("%H:%M"))
+    #Query temperaturedata and add it to sensordata object
+    data = dbRangeQuery('Temperature', startTime, endTime, 1000)
+    sensordata.tempvalues = data['values']
+    sensordata.templabels = data['labels']
 
 
+    #Query humiditydata and add it to sensordata object
+    data = dbRangeQuery('Humidity', startTime, endTime, 1000)
+    sensordata.humvalues = data['values']
+    sensordata.humlabels = data['labels']
+
+
+    #Query particledata and add it to sensordata object
+    #PM1
+    data = dbRangeQuery('PM1', startTime, endTime, 1000)
+    sensordata.pm1 = data['values']
+    sensordata.pmlabels = data['labels']
+
+    #PM2.5
+    data = dbRangeQuery('PM2_5', startTime, endTime, 1000)
+    sensordata.pm2_5 = data['values']
+
+    #PM10
+    data = dbRangeQuery('PM10', startTime, endTime, 1000)
+    sensordata.pm10 = data['values']
+
+
+
+
+
+
+    #Return view with data
     return render_template('index.html', sensordata = sensordata)
+
+
+
+#Returns timestamps and values
+def dbRangeQuery(query, startTime, endTime, step):
+    queryString = f"{db_url}/query_range?query={query}&start={startTime}&end={endTime}&step={step}s"
+    r = requests.get(queryString)
+    data = r.json()
+
+    values = []
+    labels = []
+
+    for i in data['data']['result'][0]['values']:
+        values.append(i[1])
+        labels.append(datetime.fromtimestamp(i[0]).strftime("%H:%M"))
+
+
+    return {'values': values, 'labels': labels}
