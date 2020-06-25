@@ -1,12 +1,8 @@
 from flask import Flask
 from flask import Response
 from flask import render_template
-import Adafruit_DHT
-from tinydb import TinyDB, Query
 from datetime import datetime
 from datetime import timedelta
-from dateutil import parser
-from pms5003 import PMS5003
 import requests
 
 
@@ -32,14 +28,6 @@ class Sensordata:
         self.pmlabels = []
 
 
-DHT_SENSOR = Adafruit_DHT.DHT22
-DHT_PIN = 4
-
-pms5003 = PMS5003(
-    device='/dev/ttyAMA0',
-    baudrate=9600
-)
-
 #Prometheus timeseries database
 db_url = "http://localhost:9090/api/v1"
 
@@ -49,7 +37,7 @@ def index():
     sensordata = Sensordata()
 
     endTime = datetime.timestamp(datetime.now())
-    startTime = datetime.timestamp(datetime.now() - timedelta(hours=48))
+    startTime = datetime.timestamp(datetime.now() - timedelta(days=7))
 
     #Query temperaturedata and add it to sensordata object
     #data for graph
@@ -106,7 +94,7 @@ def dbRangeQuery(query, startTime, endTime, step):
 
     for i in data['data']['result'][0]['values']:
         values.append(i[1])
-        labels.append(datetime.fromtimestamp(i[0]).strftime("%H:%M"))
+        labels.append(datetime.fromtimestamp(i[0]).strftime("%d %b %H:%M"))
 
 
     return {'values': values, 'labels': labels}
@@ -120,3 +108,4 @@ def dbInstantQuery(query):
     value = data['data']['result'][0]['value'][1]
 
     return value
+
